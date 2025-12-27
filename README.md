@@ -1,36 +1,110 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Next.js Starter (Drizzle + Better Auth)
 
-## Getting Started
+A Next.js starter using Drizzle ORM (PostgreSQL) and Better Auth.
 
-First, run the development server:
+## Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Node.js 18+ (or Bun if you prefer)
+- PostgreSQL running locally or remotely
+- A `.env` file at the project root
+
+## Environment Variables
+
+Create `.env` with:
+
+```
+DATABASE_URL=postgresql://USER:PASS@HOST:PORT/DB_NAME
+BETTER_AUTH_SECRET=your-random-secret-string
+BETTER_AUTH_URL=http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Notes:
+- BETTER_AUTH_SECRET should be a long random string.
+- BETTER_AUTH_URL must match your app URL (http://localhost:3000 in dev).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Install Dependencies
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Linux terminal:
 
-## Learn More
+```
+npm install
+```
 
-To learn more about Next.js, take a look at the following resources:
+If you use Bun:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+bun install
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Drizzle Setup
 
-## Deploy on Vercel
+Check your Drizzle config:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Config file: `drizzle.config.ts`
+- Schema: `./drizzle/src/db/schemas/schema.ts`
+- Output: `./drizzle/migrations` (or `./drizzle` if you prefer everything in one folder)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Generate SQL from schema:
+
+```
+npx drizzle-kit generate
+```
+
+Run migrations:
+
+```
+npx drizzle-kit migrate
+```
+
+## Better Auth Setup
+
+Your auth is configured in `app/lib/auth.ts` using the Drizzle adapter:
+
+```ts
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { db } from "@/drizzle/src";
+
+export const auth = betterAuth({
+  database: drizzleAdapter(db, { provider: "pg" }),
+  emailAndPassword: { enabled: true },
+});
+```
+
+If you run on Node/Next.js, ensure your Drizzle client uses a Node driver (not Bun):
+
+```ts
+// filepath: /home/aakash/Documents/Geeks/next-js-starter/drizzle/src/index.ts
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const db = drizzle(pool);
+```
+
+Generate Better Auth artifacts:
+
+```
+npx @better-auth/cli generate
+```
+
+If you prefer Bun, make sure Bun is in PATH and use:
+
+```
+bunx @better-auth/cli generate
+```
+
+## Run the App
+
+Start the dev server:
+
+```
+npm run dev
+```
+
+Open http://localhost:3000.
+
+## Common Issues
+
+- “Cannot find module 'bun'” when generating: you’re loading a Bun driver under Node. Switch Drizzle to `node-postgres` (as above) or run the command with Bun (`bunx`) and ensure Bun is in PATH.
+- Missing DATABASE_URL: confirm `.env` is present and loaded. Next.js loads `.env` automatically; drizzle-kit loads via `dotenv/config` in your `package.json` scripts.
