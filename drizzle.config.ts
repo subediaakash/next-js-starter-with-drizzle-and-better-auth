@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { defineConfig } from 'drizzle-kit';
 
 export default defineConfig({
-    out: './drizzle',
+    out: './drizzle/migrations',
     schema: './drizzle/src/db/schemas/schema.ts',
     dialect: 'postgresql',
     dbCredentials: {
